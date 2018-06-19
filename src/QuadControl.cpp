@@ -77,7 +77,7 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
     float l = L / sqrtf(2.f);
     float t1 = momentCmd.x / l;
     float t2 = momentCmd.y / l;
-    float t3 = momentCmd.z / kappa;
+    float t3 = -momentCmd.z / kappa;
     float t4 = collThrustCmd;
     
     cmd.desiredThrustsN[0] = (t1 + t2 + t3 + t4) / 4.f; // front left
@@ -154,15 +154,17 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
 
     if (collThrustCmd > 0) {
 
-        float c_d = collThrustCmd / mass;
+        float c_d = -collThrustCmd / mass;
 
         float b_x_actual = R(0, 2);
-        float b_x_cmd = CONSTRAIN(accelCmd.x / c_d, -maxTiltAngle, maxTiltAngle);
+//        float b_x_cmd = CONSTRAIN(accelCmd.x / c_d, -maxTiltAngle, maxTiltAngle);
+        float b_x_cmd = accelCmd.x / c_d;
         float b_x_err = b_x_cmd - b_x_actual;
         float b_x_p_term = kpBank * b_x_err;
 
         float b_y_actual = R(1, 2);
-        float b_y_cmd = CONSTRAIN(accelCmd.y / c_d, -maxTiltAngle, maxTiltAngle);
+//        float b_y_cmd = CONSTRAIN(accelCmd.y / c_d, -maxTiltAngle, maxTiltAngle);
+        float b_y_cmd = accelCmd.y / c_d;
         float b_y_err = b_y_cmd - b_y_actual;
         float b_y_p_term = kpBank * b_y_err;
 
@@ -225,7 +227,7 @@ float QuadControl::AltitudeControl(float posZCmd, float velZCmd, float posZ, flo
 
     float c = (u_bar - CONST_GRAVITY) / b_z;
 
-    thrust = -c * mass;
+    thrust = -mass * CONSTRAIN(c, -maxAscentRate / dt, maxAscentRate / dt);
 
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
@@ -264,29 +266,24 @@ V3F QuadControl::LateralPositionControl(V3F posCmd, V3F velCmd, V3F pos, V3F vel
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
 
-    float x_err = posCmd[0] - pos[0];
-    float x_dot_err = velCmd[0] - vel[0];
-    x_dot_err = CONSTRAIN(x_dot_err, -maxSpeedXY, maxSpeedXY);
-
-    float p_term_x = kpPosXY * x_err;
-    float d_term_x = kpVelXY * x_dot_err;
-
-    float x_dot_dot_cmd = p_term_x + d_term_x + accelCmd[0];
-    x_dot_dot_cmd = CONSTRAIN(x_dot_dot_cmd, -maxAccelXY, maxAccelXY);
-
-
-    float y_err = posCmd[1] - pos[1];
-    float y_dot_err = velCmd[0] = vel[0];
-    y_dot_err = CONSTRAIN(y_dot_err, -maxSpeedXY, maxSpeedXY);
-
-    float p_term_y = kpPosXY * y_err;
-    float d_term_y = kpVelXY * y_dot_err;
-
-    float y_dot_dot_cmd = p_term_y + d_term_y + accelCmd[1];
-    y_dot_dot_cmd = CONSTRAIN(y_dot_dot_cmd, -maxAccelXY, maxAccelXY);
-
-
-    accelCmd = V3F(x_dot_dot_cmd, y_dot_dot_cmd, 0.0);
+    V3F kp_pos = V3F(kpPosXY, kpPosXY, 0.0);
+    V3F kp_vel = V3F(kpVelXY, kpVelXY, 0.0);
+    V3F vel_cmd;
+    
+    if (velCmd.mag() > maxSpeedXY) {
+        vel_cmd = velCmd.norm() * maxSpeedXY;
+    } else {
+        vel_cmd = velCmd;
+    }
+    
+    V3F pos_err = posCmd - pos;
+    V3F vel_err = vel_cmd - vel;
+    
+    accelCmd += kp_pos * pos_err + kp_vel * vel_err;
+    
+    if (accelCmd.mag() > maxAccelXY) {
+        accelCmd = accelCmd.norm() * maxAccelXY;
+    }
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
