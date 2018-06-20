@@ -85,10 +85,6 @@ VehicleCommand QuadControl::GenerateMotorCommands(float collThrustCmd, V3F momen
     cmd.desiredThrustsN[2] = (t1 - t2 - t3 + t4) / 4.f; // rear left
     cmd.desiredThrustsN[3] = (-t1 - t2 + t3 + t4) / 4.f; // rear right
     
-//    cmd.desiredThrustsN[0] = mass * 9.81f / 4.f; // front left
-//    cmd.desiredThrustsN[1] = mass * 9.81f / 4.f; // front right
-//    cmd.desiredThrustsN[2] = mass * 9.81f / 4.f; // rear left
-//    cmd.desiredThrustsN[3] = mass * 9.81f / 4.f; // rear right
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -157,13 +153,11 @@ V3F QuadControl::RollPitchControl(V3F accelCmd, Quaternion<float> attitude, floa
         float c_d = -collThrustCmd / mass;
 
         float b_x_actual = R(0, 2);
-//        float b_x_cmd = CONSTRAIN(accelCmd.x / c_d, -maxTiltAngle, maxTiltAngle);
         float b_x_cmd = accelCmd.x / c_d;
         float b_x_err = b_x_cmd - b_x_actual;
         float b_x_p_term = kpBank * b_x_err;
 
         float b_y_actual = R(1, 2);
-//        float b_y_cmd = CONSTRAIN(accelCmd.y / c_d, -maxTiltAngle, maxTiltAngle);
         float b_y_cmd = accelCmd.y / c_d;
         float b_y_err = b_y_cmd - b_y_actual;
         float b_y_p_term = kpBank * b_y_err;
